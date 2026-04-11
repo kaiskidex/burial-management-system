@@ -1,0 +1,18 @@
+# Ignore all node_modules everywhere
+node_modules/
+**/node_modules/
+
+# Ignore all environment variables in any folder
+.env
+**/.env
+*.local
+
+# Ignore build outputs
+dist/
+**/dist/
+build/
+**/build/
+
+# System files
+.DS_Store
+.vscode/
