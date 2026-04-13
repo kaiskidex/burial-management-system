@@ -25,7 +25,6 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  // Important for tunnels - allow credentials and longer timeout
   withCredentials: true,
   timeout: 30000,
 });

@@ -62,7 +62,8 @@ const AppContent = () => {
 
   useEffect(() => {
     // ONLY fetch if we are actually authenticated
-    if (isAuthenticated) {
+    const token = localStorage.getItem('token');
+    if (isAuthenticated && token) {
       fetchBurials();
     }
   }, [isAuthenticated]); // Trigger when login status changes
