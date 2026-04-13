@@ -21,6 +21,7 @@ import api from './services/api';
 // Protected route wrapper logic
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
+  const token = localStorage.getItem('token'); // Extra check
 
   if (loading) {
     return (
@@ -29,7 +30,9 @@ const ProtectedRoute = ({ children }) => {
       </div>
     );
   }
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
+
+  // Only allow entry if authenticated AND a token exists
+  return (isAuthenticated && token) ? children : <Navigate to="/login" replace />;
 };
 
 // Internal Dashboard Layout (Only accessible if logged in)
