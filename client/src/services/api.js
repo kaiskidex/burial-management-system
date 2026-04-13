@@ -18,7 +18,7 @@ const getBaseUrl = () => {
 
 const BASE_URL = getBaseUrl();
 
-console.log('API Base URL:', BASE_URL); // Helps with debugging
+console.log('API Base URL:', BASE_URL); 
 
 const api = axios.create({
   baseURL: `${BASE_URL}/api`,
@@ -44,6 +44,10 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// Track if a redirect is already in progress to prevent loops
+let isRedirecting = false;
+
+
 // Response Interceptor: Better error handling
 api.interceptors.response.use(
   (response) => response,
@@ -51,18 +55,33 @@ api.interceptors.response.use(
     if (error.code === 'ECONNABORTED') {
       console.error('Request timeout - server might be slow or unreachable');
     }
+ 
     if (error.response?.status === 401) {
-      // Token expired or invalid
       console.error('Authentication error - please log in again');
-      // Optionally redirect to login
-      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+ 
+      const isOnLoginPage = typeof window !== 'undefined' &&
+        window.location.pathname.includes('/login');
+ 
+      // These routes failing with 401 is expected - don't redirect for them
+      const isAuthCheckRoute = error.config?.url?.includes('/auth/me') ||
+        error.config?.url?.includes('/auth/login') ||
+        error.config?.url?.includes('/auth/register');
+ 
+      // Only redirect once, and not from login page, and not for auth-check routes
+      if (!isOnLoginPage && !isAuthCheckRoute && !isRedirecting) {
+        isRedirecting = true;
         localStorage.removeItem('token');
+        localStorage.removeItem('user');
         window.location.href = '/login';
+        // Reset flag after a short delay in case redirect doesn't fully unload page
+        setTimeout(() => { isRedirecting = false; }, 3000);
       }
     }
+ 
     if (error.response?.status === 500) {
       console.error('Server error:', error.response?.data?.message || 'Internal server error');
     }
+ 
     return Promise.reject(error);
   }
 );
@@ -91,20 +110,14 @@ export const getPermitById = (id) => api.get(`/permits/${id}`);
 export const createPermit = (data) => api.post('/permits', data);
 export const updatePermit = (id, data) => api.put(`/permits/${id}`, data);
 export const approvePermit = (id, data) => api.put(`/permits/${id}/approve`, data);
-
-// uses the 'api' instance instead of raw axios
 export const completePermit = (id, data) => api.put(`/permits/${id}/complete`, data);
-
 export const deletePermit = (id) => api.delete(`/permits/${id}`);
 
 // Lease Management 
 export const getLeases = (params) => api.get('/leases', { params });
 export const createLease = (data) => api.post('/leases', data);
 export const renewLease = (id, data) => api.put(`/leases/${id}/renew`, data);
-
 export const terminateLease = (id, data) => api.delete(`/leases/${id}/terminate`, { data });
-
-
 export const getMyLeases = () => api.get('/leases/my-leases');
 
 export default api;
