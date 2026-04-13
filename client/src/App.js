@@ -16,6 +16,7 @@ import AddBurialRecord from './pages/AddBurialRecord';
 import EditBurial from "./pages/EditBurial";
 import EditExhumation from "./pages/EditExhumation";
 import EditTransfer from "./pages/EditTransfer";
+import api from './services/api';
 
 // Protected route wrapper logic
 const ProtectedRoute = ({ children }) => {
@@ -36,27 +37,14 @@ const AppContent = () => {
   const [burials, setBurials] = useState([]);
   const { user } = useAuth();
 
-  const fetchBurials = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
-      
-      const res = await axios.get(`${API_BASE_URL}/burials`, {
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'Bypass-Tunnel-Reminder': 'true' 
-        }
-      });
-      setBurials(res.data);
-    } catch (err) {
-      console.error("Error fetching data:", err);
-    }
-  };
-
-  useEffect(() => {
-    fetchBurials();
-  }, []);
+const fetchBurials = async () => {
+  try {
+    const res = await api.get('/burials'); 
+    setBurials(res.data);
+  } catch (err) {
+    console.error("Error fetching data:", err);
+  }
+};
 
   return (
     <div className="flex bg-[#F9FBFA] min-h-screen font-sans">

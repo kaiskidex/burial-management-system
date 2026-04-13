@@ -9,12 +9,13 @@ export const useAuth = () => useContext(AuthContext);
 const getApiUrl = () => {
   const host = window.location.hostname;
   
-  // Check if using VS Code dev tunnels
+  // Only use dev tunnel logic if we are actually in a dev tunnel
   if (host.includes('devtunnels.ms')) {
     const backendHost = host.replace('-3000', '-5000');
     return `https://${backendHost}/api`;
   }
   
+ 
   return process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 };
 
@@ -27,22 +28,30 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+    const initializeAuth = async () => {
         const token = localStorage.getItem('token');
         const userData = localStorage.getItem('user');
 
         if (token && userData) {
             try {
-                const parsedUser = JSON.parse(userData);
-                setUser(parsedUser);
-                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+                // Check if token is actually expired before setting user
+                if (!isTokenExpired()) {
+                    const parsedUser = JSON.parse(userData);
+                    setUser(parsedUser);
+                    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+                } else {
+                    logout(); // Clean up if it's old
+                }
             } catch (e) {
                 console.error('Failed to parse user data:', e);
-                localStorage.removeItem('user');
-                localStorage.removeItem('token');
+                logout();
             }
         }
-        setLoading(false);
-    }, []);
+        setLoading(false); 
+    };
+
+    initializeAuth();
+}, []);
 
     const register = async (name, email, password, role, secretCode) => {
         try {
