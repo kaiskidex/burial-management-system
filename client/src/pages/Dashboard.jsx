@@ -74,38 +74,35 @@ export function Dashboard({ burials: propBurials }) {
   ];
 
   // FETCH CEMETERY MAP (for all roles)
-  useEffect(() => {
-    const fetchPlots = async () => {
-      try {
-        const res = await getPlots();
-        setPlots(Array.isArray(res.data) ? res.data : []);
-      } catch (err) {
-        console.error("Error loading plots:", err);
-      } finally {
-        setLoadingPlots(false);
-      }
-    };
-    fetchPlots();
-  }, []);
+useEffect(() => {
+  const token = localStorage.getItem('token');
+  if (!token) return; // DON'T FETCH IF NO TOKEN
 
-  // FETCH USER LEASES (for public users)
+  const fetchPlots = async () => {
+    try {
+      const res = await getPlots();
+      setPlots(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error("Error loading plots:", err);
+    } finally {
+      setLoadingPlots(false);
+    }
+  };
+  fetchPlots();
+}, []);
+
 // FETCH USER LEASES (for public users)
 useEffect(() => {
+  const token = localStorage.getItem('token');
   const fetchUserLeases = async () => {
-    if (role === 'public' && user?.email) {
+    // Added token check here
+    if (token && role === 'public' && user?.email) {
       setLoadingLeases(true);
       try {
-        console.log("Fetching leases for email:", user.email);
-        // Use the dedicated endpoint for public users
-        const res = await getMyLeases();  // ← Changed to getMyLeases
-        console.log("My leases response:", res.data);
+        const res = await getMyLeases();
         const leasesData = res.data.data || res.data || [];
-        console.log("Leases data:", leasesData);
-        
-        // The backend already filters active/expiring_soon, but double-check
         const activeLeases = leasesData.filter(lease => 
-          lease.status === 'Active' || lease.status === 'active' || 
-          lease.status === 'Expiring Soon' || lease.status === 'expiring_soon'
+          ['Active', 'active', 'Expiring Soon', 'expiring_soon'].includes(lease.status)
         );
         setUserLeases(activeLeases);
       } catch (err) {
@@ -195,15 +192,17 @@ useEffect(() => {
   };
 
   // Load admin/staff data only for those roles
-  useEffect(() => {
-    if (role === 'admin' || role === 'staff') {
-      fetchRecent();
-      fetchBurials();
-      fetchPlotsData();
-      fetchPermitsData();
-      fetchExpiringLeases();
-    }
-  }, [role, user]);
+useEffect(() => {
+  const token = localStorage.getItem('token');
+
+  if (token && (role === 'admin' || role === 'staff')) {
+    fetchRecent();
+    fetchBurials();
+    fetchPlotsData();
+    fetchPermitsData();
+    fetchExpiringLeases();
+  }
+}, [role, user]);
 
   // DELETE HANDLER (ADMIN ONLY)
   const handleDelete = async (id) => {
@@ -262,7 +261,8 @@ useEffect(() => {
   }, [publicSearchQuery]);
 
   const handlePublicSearch = async () => {
-    if (!publicSearchQuery.trim()) return;
+    const token = localStorage.getItem('token');
+    if (!publicSearchQuery.trim() || !token) return;
     
     setPublicLoading(true);
     try {

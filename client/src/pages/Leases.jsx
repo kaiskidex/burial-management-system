@@ -628,14 +628,25 @@ export function Leases() {
   const [filterStatus, setFilterStatus] = useState("All");
   const [modal, setModal] = useState(null);
 
-  // Debug logging
+
   useEffect(() => {
-    console.log("User from auth:", user);
-    console.log("Is Admin:", isAdmin);
-    console.log("Is Staff:", isStaff);
+    if (user) {
+      console.log("User from auth:", user);
+      console.log("Is Admin:", isAdmin);
+      console.log("Is Staff:", isStaff);
+    }
   }, [user, isAdmin, isStaff]);
 
+  
   const fetchLeases = async () => {
+    const token = localStorage.getItem('token');
+    
+    
+    if (!token) {
+      console.log("No token found, skipping fetchLeases");
+      return; 
+    }
+
     setLoading(true);
     try {
       const response = await getLeases();
@@ -657,14 +668,20 @@ export function Leases() {
       setLeases(formattedLeases);
     } catch (error) {
       console.error("Error fetching leases:", error);
+    
+      setLeases([]); 
     } finally {
       setLoading(false);
     }
   };
 
+ 
   useEffect(() => {
-    fetchLeases();
-  }, []);
+    const token = localStorage.getItem('token');
+    if (token) {
+      fetchLeases();
+    }
+  }, []); 
 
   const total = leases.length;
   const activeCount = leases.filter((l) => l.status === "Active").length;
@@ -687,19 +704,36 @@ export function Leases() {
   }, [leases, searchQuery, filterStatus]);
 
   const handleNewLease = async (data) => {
+    
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert("Your session has expired. Please log in again.");
+      window.location.href = '/login';
+      return;
+    }
+
     try {
+     
       const plotsRes = await getPlots();
       const plotNumberParts = data.plot.split("-");
+      
+      if (plotNumberParts.length < 2) {
+        return alert("Invalid plot format. Use Section-Number (e.g., A-101)");
+      }
+
       const section = plotNumberParts[0];
       const plotNumber = plotNumberParts[1];
       const plotsData = plotsRes.data.data || plotsRes.data || [];
+      
       const existingPlot = plotsData.find(
         (p) => p.section === section && p.plotNumber === plotNumber,
       );
 
-      if (!existingPlot)
-        return alert("Plot not found. Ensure the plot exists first.");
+      if (!existingPlot) {
+        return alert("Plot not found. Ensure the plot exists in the system first.");
+      }
 
+      
       const payload = {
         ownerName: data.name,
         ownerEmail: data.email,
@@ -709,11 +743,17 @@ export function Leases() {
         durationYears: parseInt(data.years),
       };
 
+    
       await createLease(payload);
+      
+  
       await fetchLeases();
+      
       alert("Lease registered successfully!");
     } catch (error) {
-      alert(error.response?.data?.message || "Failed to create lease");
+      console.error("Lease creation error:", error);
+      const errorMsg = error.response?.data?.message || "Failed to create lease. Please try again.";
+      alert(errorMsg);
     }
   };
 
