@@ -31,18 +31,31 @@ const api = axios.create({
 });
 
 // Interceptor: Automatically attaches the Token
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token'); 
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+useEffect(() => {
+  const initializeAuth = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const userData = localStorage.getItem('user');
+
+      if (token && userData) {
+        if (!isTokenExpired()) {
+          const parsedUser = JSON.parse(userData);
+          setUser(parsedUser);
+        } else {
+          localStorage.clear();
+        }
+      }
+    } catch (e) {
+      console.error('Auth init error:', e);
+      localStorage.clear();
+    } finally {
+      
+      setLoading(false);
     }
-    // Add bypass header for tunnel warning page
-    config.headers['Bypass-Tunnel-Reminder'] = 'true';
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+  };
+
+  initializeAuth();
+}, []);
 
 // Track if a redirect is already in progress to prevent loops
 let isRedirecting = false;
@@ -52,36 +65,13 @@ let isRedirecting = false;
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.code === 'ECONNABORTED') {
-      console.error('Request timeout - server might be slow or unreachable');
-    }
- 
     if (error.response?.status === 401) {
-      console.error('Authentication error - please log in again');
- 
-      const isOnLoginPage = typeof window !== 'undefined' &&
-        window.location.pathname.includes('/login');
- 
-      // These routes failing with 401 is expected - don't redirect for them
-      const isAuthCheckRoute = error.config?.url?.includes('/auth/me') ||
-        error.config?.url?.includes('/auth/login') ||
-        error.config?.url?.includes('/auth/register');
- 
-      // Only redirect once, and not from login page, and not for auth-check routes
-      if (!isOnLoginPage && !isAuthCheckRoute && !isRedirecting) {
-        isRedirecting = true;
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+     
+      if (!window.location.pathname.includes('/login')) {
+        localStorage.clear();
         window.location.href = '/login';
-        // Reset flag after a short delay in case redirect doesn't fully unload page
-        setTimeout(() => { isRedirecting = false; }, 3000);
       }
     }
- 
-    if (error.response?.status === 500) {
-      console.error('Server error:', error.response?.data?.message || 'Internal server error');
-    }
- 
     return Promise.reject(error);
   }
 );

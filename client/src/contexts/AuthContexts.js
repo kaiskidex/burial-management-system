@@ -33,22 +33,31 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     // Initialize auth state on mount
-    useEffect(() => {
-        const initializeAuth = async () => {
-            try {
-                const token = localStorage.getItem('token');
-                const userData = localStorage.getItem('user');
-                if (token && userData && !isTokenExpired()) {
-                    setUser(JSON.parse(userData));
-                }
-            } catch (e) {
-                clearAuthStorage();
-            } finally {
-                setLoading(false); // THIS MUST RUN
-            }
-        };
-        initializeAuth();
-    }, []);
+ useEffect(() => {
+  const initializeAuth = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const userData = localStorage.getItem('user');
+
+      if (token && userData) {
+        if (!isTokenExpired()) {
+          const parsedUser = JSON.parse(userData);
+          setUser(parsedUser);
+        } else {
+          localStorage.clear();
+        }
+      }
+    } catch (e) {
+      console.error('Auth init error:', e);
+      localStorage.clear();
+    } finally {
+      // THIS IS THE KEY: The app MUST stop loading no matter what
+      setLoading(false);
+    }
+  };
+
+  initializeAuth();
+}, []);
 
     // Watch for token expiry while the app is open
     useEffect(() => {
