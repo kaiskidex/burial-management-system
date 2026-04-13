@@ -30,43 +30,20 @@ const api = axios.create({
   timeout: 30000,
 });
 
-// Interceptor: Automatically attaches the Token
-useEffect(() => {
-  const initializeAuth = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const userData = localStorage.getItem('user');
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token'); 
+    if (token) { config.headers.Authorization = `Bearer ${token}`; }
+    config.headers['Bypass-Tunnel-Reminder'] = 'true';
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
-      if (token && userData) {
-        if (!isTokenExpired()) {
-          const parsedUser = JSON.parse(userData);
-          setUser(parsedUser);
-        } else {
-          localStorage.clear();
-        }
-      }
-    } catch (e) {
-      console.error('Auth init error:', e);
-      localStorage.clear();
-    } finally {
-      
-      setLoading(false);
-    }
-  };
-
-  initializeAuth();
-}, []);
-
-// Track if a redirect is already in progress to prevent loops
-let isRedirecting = false;
-
-
-// Response Interceptor: Better error handling
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-     
       if (!window.location.pathname.includes('/login')) {
         localStorage.clear();
         window.location.href = '/login';

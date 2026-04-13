@@ -51,7 +51,6 @@ export const AuthProvider = ({ children }) => {
       console.error('Auth init error:', e);
       localStorage.clear();
     } finally {
-      // THIS IS THE KEY: The app MUST stop loading no matter what
       setLoading(false);
     }
   };
