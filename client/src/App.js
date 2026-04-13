@@ -43,30 +43,35 @@ const ProtectedRoute = ({ children }) => {
 // Internal Dashboard Layout (Only accessible if logged in)
 const AppContent = () => {
   const [burials, setBurials] = useState([]);
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth(); // Added 'loading' from context
 
   const fetchBurials = async () => {
+    // Double-check token before firing the request
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
     try {
       const res = await api.get('/burials');
-
       if (res && res.data) {
         setBurials(res.data);
       }
     } catch (err) {
       console.error("Error fetching data:", err);
-
-
       setBurials([]);
     }
   };
 
   useEffect(() => {
-    // ONLY fetch if we are actually authenticated
+    // Only fetch if authenticated AND we have a token
     const token = localStorage.getItem('token');
     if (isAuthenticated && token) {
       fetchBurials();
     }
-  }, [isAuthenticated]); // Trigger when login status changes
+  }, [isAuthenticated]);
+
+  if (loading || !isAuthenticated) {
+    return null;
+  }
 
  return (
     <div className="flex bg-[#F9FBFA] min-h-screen font-sans">
