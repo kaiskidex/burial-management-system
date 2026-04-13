@@ -21,28 +21,31 @@ const PORT = process.env.PORT || 5000;
 // CONNECT TO DATABASE
 connectDB();
 
+
+
 // MIDDLEWARE 
 app.use(cors({
     origin: function (origin, callback) {
         // Allow requests with no origin (like mobile apps or curl)
         if (!origin) return callback(null, true);
-        
-        // Define allowed patterns
+
         const allowedLocalOrigins = [
             'http://localhost:3000',
             'http://localhost:5173',
-            'http://localhost:5000'
+            'http://localhost:5000',
+
         ];
-        
-        // 3. Logic to check if origin is allowed
-        const isLocal = allowedLocalOrigins.indexOf(origin) !== -1;
+
+
+        const isLocal = allowedLocalOrigins.includes(origin);
         const isDevTunnel = origin.includes('devtunnels.ms');
         const isProductionFrontend = process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL;
+        const isVercelPreview = origin.endsWith('.vercel.app');
 
-        if (isLocal || isDevTunnel || isProductionFrontend) {
+        if (isLocal || isDevTunnel || isProductionFrontend || isVercelPreview) {
             return callback(null, true);
         }
-        
+
         console.log('CORS blocked origin:', origin);
         callback(new Error('Not allowed by CORS'));
     },
@@ -52,7 +55,9 @@ app.use(cors({
     exposedHeaders: ['Content-Range', 'X-Content-Range']
 }));
 
-app.use(express.json());                  
+app.options('*', cors());
+
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Security Headers & Dev Tunnel bypass
@@ -72,7 +77,7 @@ app.use('/api/plots', plotRoutes);
 
 // Test routes
 app.get('/', (req, res) => {
-    res.json({ 
+    res.json({
         message: 'Cemetery Management System API',
         status: 'running',
         environment: process.env.NODE_ENV || 'production'
@@ -81,15 +86,15 @@ app.get('/', (req, res) => {
 
 // Health check
 app.get('/health', (req, res) => {
-    res.json({ 
-        status: 'healthy', 
+    res.json({
+        status: 'healthy',
         uptime: process.uptime()
     });
 });
 
 // 404 handler
 app.use((req, res) => {
-    res.status(404).json({ 
+    res.status(404).json({
         error: 'Route not found',
         message: `Cannot ${req.method} ${req.url}`
     });
@@ -98,7 +103,7 @@ app.use((req, res) => {
 // Global error handler
 app.use((err, req, res, next) => {
     console.error('Server Error:', err.stack);
-    res.status(500).json({ 
+    res.status(500).json({
         error: 'Internal Server Error',
         message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
     });
@@ -106,7 +111,7 @@ app.use((err, req, res, next) => {
 
 // START SERVER
 
-const HOST = '0.0.0.0'; 
+const HOST = '0.0.0.0';
 app.listen(PORT, HOST, () => {
     console.log(`Server is running on port ${PORT}`);
 });
