@@ -43,22 +43,31 @@ const ProtectedRoute = ({ children }) => {
 // Internal Dashboard Layout (Only accessible if logged in)
 const AppContent = () => {
   const [burials, setBurials] = useState([]);
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
   const fetchBurials = async () => {
     try {
-      const res = await api.get('/burials'); 
-      setBurials(res.data);
+      const res = await api.get('/burials');
+
+      if (res && res.data) {
+        setBurials(res.data);
+      }
     } catch (err) {
       console.error("Error fetching data:", err);
+
+
+      setBurials([]);
     }
   };
 
   useEffect(() => {
-    fetchBurials();
-  }, []); // Runs once when the user logs in and the app content loads
+    // ONLY fetch if we are actually authenticated
+    if (isAuthenticated) {
+      fetchBurials();
+    }
+  }, [isAuthenticated]); // Trigger when login status changes
 
-  return (
+ return (
     <div className="flex bg-[#F9FBFA] min-h-screen font-sans">
       <Sidebar />
       <main className="flex-1 p-8 ml-64">
@@ -96,15 +105,15 @@ function App() {
         {/* Public Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        
+
         {/* Protected Routes (AppContent is wrapped in ProtectedRoute) */}
-        <Route 
-          path="/*" 
+        <Route
+          path="/*"
           element={
             <ProtectedRoute>
               <AppContent />
             </ProtectedRoute>
-          } 
+          }
         />
       </Routes>
     </Router>
