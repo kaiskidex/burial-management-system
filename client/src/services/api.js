@@ -101,10 +101,9 @@ export const deletePermit = (id) => api.delete(`/permits/${id}`);
 export const getLeases = (params) => api.get('/leases', { params });
 export const createLease = (data) => api.post('/leases', data);
 export const renewLease = (id, data) => api.put(`/leases/${id}/renew`, data);
-// FIXED: Changed from POST to DELETE to match route
+
 export const terminateLease = (id, data) => api.delete(`/leases/${id}/terminate`, { data });
-// Alternative: If you prefer POST, uncomment below and comment above
-// export const terminateLease = (id, data) => api.post(`/leases/${id}/terminate`, data);
+
 
 export const getMyLeases = () => api.get('/leases/my-leases');
 
