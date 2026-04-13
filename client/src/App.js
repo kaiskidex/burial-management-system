@@ -20,9 +20,9 @@ import api from './services/api';
 
 // Protected route wrapper logic
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
-  const token = localStorage.getItem('token'); // Extra check
+  const { isAuthenticated, loading, logout } = useAuth();
 
+  // If we are still checking the token, show the spinner
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen bg-[#F9FBFA]">
@@ -31,8 +31,13 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
-  // Only allow entry if authenticated AND a token exists
-  return (isAuthenticated && token) ? children : <Navigate to="/login" replace />;
+  // If the bouncer says you aren't logged in, go to login
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // If we are authenticated, show the dashboard/content
+  return children;
 };
 
 // Internal Dashboard Layout (Only accessible if logged in)
@@ -40,14 +45,18 @@ const AppContent = () => {
   const [burials, setBurials] = useState([]);
   const { user } = useAuth();
 
-const fetchBurials = async () => {
-  try {
-    const res = await api.get('/burials'); 
-    setBurials(res.data);
-  } catch (err) {
-    console.error("Error fetching data:", err);
-  }
-};
+  const fetchBurials = async () => {
+    try {
+      const res = await api.get('/burials'); 
+      setBurials(res.data);
+    } catch (err) {
+      console.error("Error fetching data:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchBurials();
+  }, []); // Runs once when the user logs in and the app content loads
 
   return (
     <div className="flex bg-[#F9FBFA] min-h-screen font-sans">
